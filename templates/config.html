@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration - Plex Library Scanner{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i data-feather="settings" class="me-2"></i>
+                Library Configuration
+            </h1>
+            {% if not mode %}
+                <div class="btn-group">
+                    <a href="{{ url_for('add_config') }}" class="btn btn-primary">
+                        <i data-feather="plus" class="me-1"></i>
+                        Add Library
+                    </a>
+                    <a href="{{ url_for('validate_configs') }}" class="btn btn-outline-secondary">
+                        <i data-feather="check-circle" class="me-1"></i>
+                        Validate Configurations
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if mode == 'add' %}
+<!-- Add Configuration Form -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Add New Library Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_config') }}">
+                    <div class="mb-3">
+                        <label for="library_key" class="form-label">Plex Library</label>
+                        <select class="form-select" id="library_key" name="library_key" required onchange="updateLibraryInfo()">
+                            <option value="">Select a library...</option>
+                            {% for library in libraries %}
+                                <option value="{{ library.key }}" 
+                                        data-name="{{ library.title }}" 
+                                        data-type="{{ library.type }}"
+                                        data-agent="{{ library.agent }}">
+                                    {{ library.title }} ({{ library.type|title }}) - {{ library.agent }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="library_name" class="form-label">Library Name</label>
+                        <input type="text" class="form-control" id="library_name" name="library_name" required readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="library_type" class="form-label">Library Type</label>
+                        <input type="text" class="form-control" id="library_type" name="library_type" required readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="agent_name" class="form-label">Metadata Agent</label>
+                        <input type="text" class="form-control" id="agent_name" name="agent_name" required readonly>
+                        <div class="form-text">This will automatically use the agent currently configured for the selected library.</div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i data-feather="save" class="me-1"></i>
+                            Add Configuration
+                        </button>
+                        <a href="{{ url_for('config') }}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% elif mode == 'validate' %}
+<!-- Validation Results -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i data-feather="check-circle" class="me-2"></i>
+                    Library Configuration Validation
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if validation_results %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Library Name</th>
+                                    <th>Library Key</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Message</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in validation_results %}
+                                <tr class="{% if not result.is_valid %}table-danger{% endif %}">
+                                    <td>
+                                        <strong>{{ result.config.library_name }}</strong>
+                                    </td>
+                                    <td>
+                                        <code>{{ result.config.library_key }}</code>
+                                    </td>
+                                    <td>
+                                        <span class="text-capitalize">{{ result.config.library_type }}</span>
+                                    </td>
+                                    <td>
+                                        {% if result.is_valid %}
+                                            <span class="badge bg-success">
+                                                <i data-feather="check" style="width: 12px; height: 12px;"></i>
+                                                Valid
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger">
+                                                <i data-feather="x" style="width: 12px; height: 12px;"></i>
+                                                Invalid
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ result.message }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            {% if not result.is_valid %}
+                                                <a href="{{ url_for('edit_config', config_id=result.config.id) }}" 
+                                                   class="btn btn-outline-warning" title="Fix Configuration">
+                                                    <i data-feather="edit"></i>
+                                                </a>
+                                                <form method="POST" action="{{ url_for('delete_config', config_id=result.config.id) }}" 
+                                                      style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this invalid configuration?')">
+                                                    <button type="submit" class="btn btn-outline-danger" title="Delete">
+                                                        <i data-feather="trash-2"></i>
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <a href="{{ url_for('config') }}" class="btn btn-secondary">
+                            <i data-feather="arrow-left" class="me-1"></i>
+                            Back to Configuration
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i data-feather="check-circle" class="mb-2" style="width: 48px; height: 48px;"></i>
+                        <p>No library configurations to validate.</p>
+                        <a href="{{ url_for('add_config') }}" class="btn btn-primary">Add First Library</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% elif mode == 'edit' %}
+<!-- Edit Configuration Form -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Edit Library Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('edit_config', config_id=config.id) }}">
+                    <div class="mb-3">
+                        <label for="library_name" class="form-label">Library Name</label>
+                        <input type="text" class="form-control" id="library_name" name="library_name" 
+                               value="{{ config.library_name }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Library Type</label>
+                        <input type="text" class="form-control" value="{{ config.library_type|title }}" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="agent_name" class="form-label">Metadata Agent</label>
+                        <input type="text" class="form-control" id="agent_name" name="agent_name" required 
+                               value="{{ config.agent_name }}" placeholder="e.g., com.plexapp.agents.themoviedb">
+                        <div class="form-text">Enter the metadata agent ID to use for matching new media in this library.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="enabled" name="enabled" 
+                                   {% if config.enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="enabled">
+                                Enable automatic scanning for this library
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i data-feather="save" class="me-1"></i>
+                            Update Configuration
+                        </button>
+                        <a href="{{ url_for('config') }}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- Configuration List -->
+<div class="row">
+    <div class="col-12">
+        {% if configs %}
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Library Name</th>
+                                    <th>Type</th>
+                                    <th>Agent</th>
+                                    <th>Status</th>
+                                    <th>Last Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for config in configs %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ config.library_name }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="text-capitalize">{{ config.library_type }}</span>
+                                    </td>
+                                    <td>
+                                        <code class="small">{{ config.agent_name }}</code>
+                                    </td>
+                                    <td>
+                                        {% if config.enabled %}
+                                            <span class="badge bg-success">Enabled</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Disabled</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ config.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('library_detail', config_id=config.id) }}" 
+                                               class="btn btn-outline-primary" title="View Details">
+                                                <i data-feather="eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('edit_config', config_id=config.id) }}" 
+                                               class="btn btn-outline-secondary" title="Edit">
+                                                <i data-feather="edit"></i>
+                                            </a>
+                                            <form method="POST" action="{{ url_for('delete_config', config_id=config.id) }}" 
+                                                  style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this configuration?')">
+                                                <button type="submit" class="btn btn-outline-danger" title="Delete">
+                                                    <i data-feather="trash-2"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i data-feather="folder-plus" class="mb-3" style="width: 64px; height: 64px;"></i>
+                    <h4>No Library Configurations</h4>
+                    <p class="text-muted">Start by adding your first Plex library configuration.</p>
+                    <a href="{{ url_for('add_config') }}" class="btn btn-primary">
+                        <i data-feather="plus" class="me-1"></i>
+                        Add First Library
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if mode == 'add' %}
+<script>
+function updateLibraryInfo() {
+    const select = document.getElementById('library_key');
+    const option = select.selectedOptions[0];
+    
+    if (option && option.value) {
+        document.getElementById('library_name').value = option.dataset.name;
+        document.getElementById('library_type').value = option.dataset.type;
+        document.getElementById('agent_name').value = option.dataset.agent;
+    } else {
+        document.getElementById('library_name').value = '';
+        document.getElementById('library_type').value = '';
+        document.getElementById('agent_name').value = '';
+    }
+}
+</script>
+{% endif %}
+{% endblock %}

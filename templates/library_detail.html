@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}{{ config.library_name }} - Plex Library Scanner{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('config') }}">Configuration</a></li>
+                <li class="breadcrumb-item active">{{ config.library_name }}</li>
+            </ol>
+        </nav>
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i data-feather="folder" class="me-2"></i>
+                {{ config.library_name }}
+            </h1>
+            <div class="btn-group">
+                <a href="{{ url_for('edit_config', config_id=config.id) }}" class="btn btn-outline-primary">
+                    <i data-feather="edit" class="me-1"></i>
+                    Edit Configuration
+                </a>
+                <a href="{{ url_for('manual_scan') }}" class="btn btn-primary">
+                    <i data-feather="refresh-cw" class="me-1"></i>
+                    Rescan Library
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Library Information -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">Library Information</h6>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Type:</dt>
+                    <dd class="col-sm-8 text-capitalize">{{ config.library_type }}</dd>
+                    
+                    <dt class="col-sm-4">Agent:</dt>
+                    <dd class="col-sm-8"><code>{{ config.agent_name }}</code></dd>
+                    
+                    <dt class="col-sm-4">Status:</dt>
+                    <dd class="col-sm-8">
+                        {% if config.enabled %}
+                            <span class="badge bg-success">Enabled</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Disabled</span>
+                        {% endif %}
+                    </dd>
+                    
+                    <dt class="col-sm-4">Created:</dt>
+                    <dd class="col-sm-8">{{ config.created_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+                    
+                    <dt class="col-sm-4">Last Updated:</dt>
+                    <dd class="col-sm-8">{{ config.updated_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">Statistics</h6>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-6">Total Media Processed:</dt>
+                    <dd class="col-sm-6"><strong>{{ media_items.total }}</strong></dd>
+                    
+                    <dt class="col-sm-6">Successfully Matched:</dt>
+                    <dd class="col-sm-6">
+                        {% set successful = media_items.items | selectattr('match_successful') | list | length %}
+                        <span class="text-success"><strong>{{ successful }}</strong></span>
+                    </dd>
+                    
+                    <dt class="col-sm-6">Match Errors:</dt>
+                    <dd class="col-sm-6">
+                        {% set failed = media_items.items | rejectattr('match_successful') | list | length %}
+                        <span class="text-danger"><strong>{{ failed }}</strong></span>
+                    </dd>
+                    
+                    <dt class="col-sm-6">Success Rate:</dt>
+                    <dd class="col-sm-6">
+                        {% if media_items.total > 0 %}
+                            {% set rate = (successful / media_items.total * 100) | round(1) %}
+                            <strong>{{ rate }}%</strong>
+                        {% else %}
+                            <strong>N/A</strong>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Media Items -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Processed Media Items</h5>
+            </div>
+            <div class="card-body">
+                {% if media_items.items %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Added to Plex</th>
+                                    <th>Processed</th>
+                                    <th>Agent</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for media in media_items.items %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-medium">{{ media.title }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="text-capitalize">{{ media.media_type }}</span>
+                                    </td>
+                                    <td>
+                                        <small>{{ media.added_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    </td>
+                                    <td>
+                                        <small>{{ media.processed_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    </td>
+                                    <td>
+                                        {% if media.agent_matched %}
+                                            <code class="small">{{ media.agent_matched }}</code>
+                                        {% else %}
+                                            <span class="text-muted">None</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if media.match_successful %}
+                                            <span class="badge bg-success">
+                                                <i data-feather="check" style="width: 12px; height: 12px;"></i>
+                                                Matched
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger" 
+                                                  {% if media.error_message %}title="{{ media.error_message }}"{% endif %}>
+                                                <i data-feather="x" style="width: 12px; height: 12px;"></i>
+                                                Failed
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if media.error_message and not media.match_successful %}
+                                <tr class="table-warning">
+                                    <td colspan="6">
+                                        <small><strong>Error:</strong> {{ media.error_message }}</small>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if media_items.pages > 1 %}
+                    <nav aria-label="Media items pagination">
+                        <ul class="pagination justify-content-center">
+                            {% if media_items.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('library_detail', config_id=config.id, page=media_items.prev_num) }}">Previous</a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for page_num in media_items.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != media_items.page %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('library_detail', config_id=config.id, page=page_num) }}">{{ page_num }}</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ page_num }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if media_items.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('library_detail', config_id=config.id, page=media_items.next_num) }}">Next</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i data-feather="film" class="mb-3" style="width: 64px; height: 64px;"></i>
+                        <h5>No Media Processed Yet</h5>
+                        <p>This library hasn't processed any media items yet.</p>
+                        <p>Media will appear here after the next scan if there are items added within the last 24 hours.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

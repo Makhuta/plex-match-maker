@@ -1,0 +1,15 @@
+services:
+  plex_match_maker:
+    image: ghcr.io/makhuta/plex-match-maker:latest
+    container_name: plex_match_maker
+    ports:
+      - 8000:8000
+    environment:
+      TZ: "UTC"
+      SESSION_SECRET: "dev-secret-key-change-in-production"
+      PLEX_URL: "http://localhost:32400"
+      PLEX_TOKEN: ""
+    volumes:
+      - ./db:/app/instance
+      - ./logs:/var/log/supervisor
+    restart: unless-stopped
