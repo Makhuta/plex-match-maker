@@ -5,6 +5,7 @@ import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from urllib.parse import urljoin
+from config import TZ
 
 logger = logging.getLogger(__name__)
 
@@ -56,12 +57,12 @@ class PlexClient:
                     self.server_timezone = pytz.timezone(timezone_pref)
                 else:
                     # Fallback to UTC if timezone not found
-                    self.server_timezone = pytz.UTC
-                    logger.warning("Could not detect server timezone, using UTC")
+                    self.server_timezone = TZ
+                    logger.warning(f"Could not detect server timezone, using {TZ.zone}")
                     
             except Exception as e:
-                logger.warning(f"Could not get server timezone: {e}, using UTC")
-                self.server_timezone = pytz.UTC
+                logger.warning(f"Could not get server timezone: {e}, using {TZ.zone}")
+                self.server_timezone = TZ
             
             logger.info(f"Connected to Plex server: {self.server_info['friendlyName']}")
             logger.info(f"Server timezone: {self.server_timezone}")

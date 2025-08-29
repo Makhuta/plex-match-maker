@@ -4,6 +4,7 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from app import app, db
 from models import LibraryConfig, MediaItem, ScanLog
 from plex_client import PlexClient
+from config import TZ
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +108,7 @@ def edit_config(config_id):
     config.library_name = request.form.get('library_name', config.library_name)
     config.agent_name = request.form.get('agent_name', config.agent_name)
     config.enabled = 'enabled' in request.form
-    config.updated_at = datetime.utcnow()
+    config.updated_at = datetime.now(tz=TZ)
     
     try:
         db.session.commit()

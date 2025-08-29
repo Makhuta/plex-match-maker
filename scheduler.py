@@ -5,6 +5,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from app import app, db
 from models import LibraryConfig, MediaItem, ScanLog
 from plex_client import PlexClient
+from config import TZ
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ def scan_libraries():
             if not plex_client.connect():
                 scan_log.status = 'failed'
                 scan_log.error_message = 'Failed to connect to Plex server'
-                scan_log.scan_completed_at = datetime.utcnow()
+                scan_log.scan_completed_at = datetime.now(tz=TZ)
                 db.session.commit()
                 return
             
@@ -94,7 +95,7 @@ def scan_libraries():
             scan_log.total_matched = total_matched
             scan_log.total_errors = total_errors
             scan_log.status = 'completed'
-            scan_log.scan_completed_at = datetime.utcnow()
+            scan_log.scan_completed_at = datetime.now(tz=TZ)
             
             db.session.commit()
             logger.info(f"Scan completed. Found: {total_media_found}, Matched: {total_matched}, Errors: {total_errors}")
@@ -103,7 +104,7 @@ def scan_libraries():
             logger.error(f"Fatal error during scan: {e}")
             scan_log.status = 'failed'
             scan_log.error_message = str(e)
-            scan_log.scan_completed_at = datetime.utcnow()
+            scan_log.scan_completed_at = datetime.now(tz=TZ)
             db.session.commit()
 
 def init_scheduler(app):

@@ -1,5 +1,6 @@
 from datetime import datetime
 from app import db
+from config import TZ
 
 class LibraryConfig(db.Model):
     """Configuration for each Plex library"""
@@ -11,8 +12,8 @@ class LibraryConfig(db.Model):
     library_type = db.Column(db.String(50), nullable=False)  # movie, show, artist
     agent_name = db.Column(db.String(100), nullable=False)
     enabled = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(tz=TZ))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(tz=TZ), onupdate=lambda: datetime.now(tz=TZ))
     
     # Relationship to media items
     media_items = db.relationship('MediaItem', backref='library_config', lazy=True, cascade='all, delete-orphan')
@@ -27,7 +28,7 @@ class MediaItem(db.Model):
     title = db.Column(db.String(500), nullable=False)
     media_type = db.Column(db.String(50), nullable=False)
     added_at = db.Column(db.DateTime, nullable=False)
-    processed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    processed_at = db.Column(db.DateTime, default=lambda: datetime.now(tz=TZ))
     agent_matched = db.Column(db.String(100))
     match_successful = db.Column(db.Boolean, default=False)
     error_message = db.Column(db.Text)
@@ -39,7 +40,7 @@ class ScanLog(db.Model):
     __tablename__ = 'scan_logs'
     
     id = db.Column(db.Integer, primary_key=True)
-    scan_started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    scan_started_at = db.Column(db.DateTime, default=lambda: datetime.now(tz=TZ))
     scan_completed_at = db.Column(db.DateTime)
     total_libraries = db.Column(db.Integer, default=0)
     total_media_found = db.Column(db.Integer, default=0)
