@@ -6,6 +6,7 @@ from app import app, db
 from models import LibraryConfig, MediaItem, ScanLog
 from plex_client import PlexClient
 from config import TZ
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -110,11 +111,18 @@ def scan_libraries():
 def init_scheduler(app):
     """Initialize the background scheduler"""
     scheduler = BackgroundScheduler()
+    schedule_cron = os.getenv("SCHEDULE_CRON", "0 0,12 * * *")
+
+    try:
+        trigger = CronTrigger.from_crontab(schedule_cron, timezone=TZ)
+    except Exception as e:
+        logger.warning(f"Failed to parse CRON '{schedule_cron}'. Error: {e}")
+        trigger=CronTrigger(hour='0,12', minute=0, timezone=TZ)
     
     # Schedule library scan every 12 hours
     scheduler.add_job(
         func=scan_libraries,
-        trigger=CronTrigger(hour='0,12', minute=0, timezone=TZ),
+        trigger=trigger,
         id='library_scan',
         name='Scan Plex libraries for new media',
         replace_existing=True
