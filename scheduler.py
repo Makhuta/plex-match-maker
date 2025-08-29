@@ -108,9 +108,10 @@ def scan_libraries():
             scan_log.scan_completed_at = datetime.now(tz=TZ)
             db.session.commit()
 
+scheduler = BackgroundScheduler()
+
 def init_scheduler(app):
     """Initialize the background scheduler"""
-    scheduler = BackgroundScheduler()
     schedule_cron = os.getenv("SCHEDULE_CRON", "0 0,12 * * *")
 
     try:
@@ -139,3 +140,11 @@ def init_scheduler(app):
     # Register shutdown handler
     import atexit
     atexit.register(lambda: scheduler.shutdown())
+
+
+def scheduler_next_run():
+    job = scheduler.get_job("library_scan")
+    if job and job.next_run_time:
+        return f'{job.next_run_time.astimezone(TZ).strftime("%d.%m.%Y %H:%M")} ({TZ.zone})'
+    
+    return "??.??.???? ??:?? ?"

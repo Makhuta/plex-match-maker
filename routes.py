@@ -5,6 +5,7 @@ from app import app, db
 from models import LibraryConfig, MediaItem, ScanLog
 from plex_client import PlexClient
 from config import TZ
+from scheduler import scheduler_next_run
 
 logger = logging.getLogger(__name__)
 
@@ -28,13 +29,14 @@ def index():
     
     return render_template('index.html', 
                          library_stats=library_stats, 
-                         recent_scan=recent_scan)
+                         recent_scan=recent_scan,
+                         scheduler_next_run=scheduler_next_run())
 
 @app.route('/config')
 def config():
     """Library configuration management page"""
     configs = LibraryConfig.query.all()
-    return render_template('config.html', configs=configs)
+    return render_template('config.html', configs=configs, scheduler_next_run=scheduler_next_run())
 
 @app.route('/config/add', methods=['GET', 'POST'])
 def add_config():
@@ -51,7 +53,7 @@ def add_config():
             flash('No libraries found on Plex server. Please check your Plex server configuration.', 'warning')
             return redirect(url_for('config'))
             
-        return render_template('config.html', libraries=libraries, mode='add')
+        return render_template('config.html', libraries=libraries, mode='add', scheduler_next_run=scheduler_next_run())
     
     # POST request - create new configuration
     library_key = request.form.get('library_key')
@@ -102,7 +104,7 @@ def edit_config(config_id):
     config = LibraryConfig.query.get_or_404(config_id)
     
     if request.method == 'GET':
-        return render_template('config.html', config=config, mode='edit')
+        return render_template('config.html', config=config, mode='edit', scheduler_next_run=scheduler_next_run())
     
     # POST request - update configuration
     config.library_name = request.form.get('library_name', config.library_name)
@@ -150,7 +152,7 @@ def library_detail(config_id):
                                 .order_by(MediaItem.processed_at.desc())\
                                 .paginate(page=page, per_page=per_page, error_out=False)
     
-    return render_template('library_detail.html', config=config, media_items=media_items)
+    return render_template('library_detail.html', config=config, media_items=media_items, scheduler_next_run=scheduler_next_run())
 
 
 @app.route('/scan/manual')
@@ -180,7 +182,7 @@ def scan_logs():
     logs = ScanLog.query.order_by(ScanLog.scan_started_at.desc())\
                        .paginate(page=page, per_page=per_page, error_out=False)
     
-    return render_template('index.html', logs=logs, show_logs=True)
+    return render_template('index.html', logs=logs, show_logs=True, scheduler_next_run=scheduler_next_run())
 
 @app.route('/debug/libraries')
 def debug_libraries():
@@ -222,4 +224,4 @@ def validate_configs():
             'message': message
         })
     
-    return render_template('config.html', validation_results=validation_results, mode='validate')
+    return render_template('config.html', validation_results=validation_results, mode='validate', scheduler_next_run=scheduler_next_run())
