@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
 from app import app, db
 from models import LibraryConfig, MediaItem, ScanLog
 from plex_client import PlexClient
@@ -114,7 +114,7 @@ def init_scheduler(app):
     # Schedule library scan every 12 hours
     scheduler.add_job(
         func=scan_libraries,
-        trigger=IntervalTrigger(hours=12),
+        trigger=CronTrigger(hour='0,12', minute=0, timezone=TZ),
         id='library_scan',
         name='Scan Plex libraries for new media',
         replace_existing=True
@@ -126,7 +126,7 @@ def init_scheduler(app):
     
     # Start the scheduler
     scheduler.start()
-    logger.info("Background scheduler started - scanning every 12 hours")
+    logger.info("Background scheduler started - scanning at 0 and 12 o'clock")
     
     # Register shutdown handler
     import atexit
